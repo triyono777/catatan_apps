@@ -29,7 +29,7 @@ class FirebaseDBServices {
     return hasil;
   }
 
-  editCatatan({
+  Future editCatatan({
     required String uidCatatan,
     String? judulCatatan,
     String? isiCatatan,

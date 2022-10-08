@@ -1,7 +1,7 @@
 import 'package:catatan_apps/screen/home_screen.dart';
 import 'package:catatan_apps/screen/login_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
