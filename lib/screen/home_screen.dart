@@ -1,6 +1,9 @@
 import 'package:catatan_apps/screen/login_screen.dart';
 import 'package:catatan_apps/services/firebase_auth_services.dart';
+import 'package:catatan_apps/services/firebase_db_services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/adapters.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -10,6 +13,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  TextEditingController judulController = TextEditingController();
+  TextEditingController isiController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,6 +35,124 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          addCatatan(context);
+        },
+        child: Icon(Icons.add),
+      ),
+      body: FutureBuilder<QuerySnapshot>(
+          future: getData(),
+          builder: (context, snapshot) {
+            //
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.connectionState == ConnectionState.done) {
+              if (snapshot.data?.docs.isEmpty ?? true) {
+                return Text('no data');
+              } else {
+                return ListView.builder(
+                    itemCount: snapshot.data?.docs.length ?? 0,
+                    itemBuilder: (context, index) {
+                      var data = snapshot.data;
+                      return Dismissible(
+                        key: Key('${data?.docs[index]}'),
+                        background: Container(color: Colors.red),
+                        confirmDismiss: (_) async {
+                          FirebaseDBServices()
+                              .deleteCatatan(data?.docs[index].id);
+                          setState(() {});
+                          return true;
+                        },
+                        child: Card(
+                          child: ListTile(
+                            title: Text('${data?.docs[index]['judul']}'),
+                            subtitle: Text('tanggal catatan'),
+                            trailing: IconButton(
+                                onPressed: () {}, icon: Icon(Icons.edit)),
+                          ),
+                        ),
+                      );
+                    });
+              }
+            } else {
+              return Text('');
+            }
+          }),
     );
+  }
+
+  addCatatan(BuildContext context) async {
+    var hasil = await showDialog(
+      context: context,
+      builder: (_) => SimpleDialog(
+        contentPadding: EdgeInsets.all(8),
+        title: Text('add catatan'),
+        children: [
+          TextField(
+            controller: judulController,
+            decoration: InputDecoration(
+              labelText: 'Judul',
+              hintText: 'masukkan judul',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          TextField(
+            controller: isiController,
+            decoration: InputDecoration(
+              labelText: 'Isi',
+              hintText: 'masukkan isi',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          Row(
+            children: [
+              SimpleDialogOption(
+                child: Text('simpan'),
+                padding: EdgeInsets.all(4),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+              SimpleDialogOption(
+                child: Text('batal'),
+                padding: EdgeInsets.all(4),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (hasil == true) {
+      FirebaseDBServices()
+          .addCatatan(
+        judulCatatan: judulController.text,
+        isiCatatan: isiController.text,
+      )
+          .then((value) {
+        setState(() {});
+      });
+    }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getData() async {
+    var box = Hive.box('userBox');
+    var uid = box.get('uid');
+    var hasil = FirebaseDBServices().getCatatan(uid);
+    return hasil;
   }
 }
